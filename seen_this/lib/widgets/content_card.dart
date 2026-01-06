@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
 
 /// Widget displaying a single piece of shared content
@@ -98,7 +99,7 @@ class ContentCard extends StatelessWidget {
                 title: const Text('Share'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement share functionality
+                  _shareContent();
                 },
               ),
               ListTile(
@@ -106,7 +107,7 @@ class ContentCard extends StatelessWidget {
                 title: const Text('Copy'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Implement copy functionality
+                  _copyToClipboard(context);
                 },
               ),
               ListTile(
@@ -122,6 +123,46 @@ class ContentCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Share the content using system share dialog
+  Future<void> _shareContent() async {
+    final shareText = _buildShareText();
+    await Share.share(shareText);
+  }
+
+  /// Copy content to clipboard
+  void _copyToClipboard(BuildContext context) {
+    final text = _buildShareText();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copied to clipboard!')),
+    );
+  }
+
+  /// Build the text to share/copy
+  String _buildShareText() {
+    final buffer = StringBuffer();
+    
+    if (content.title != null) {
+      buffer.writeln(content.title);
+    }
+    
+    if (content.source != null) {
+      buffer.writeln('From: ${content.source}');
+    }
+    
+    if (content.description != null) {
+      buffer.writeln('\n${content.description}');
+    }
+    
+    if (content.contentData != null) {
+      buffer.writeln('\n${content.contentData}');
+    }
+    
+    buffer.writeln('\n—');
+    buffer.writeln('Shared via seen_this');
+    
+    return buffer.toString();
   }
 }
 

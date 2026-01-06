@@ -66,15 +66,57 @@ class TodayScreen extends StatelessWidget {
                 ),
           floatingActionButton: FloatingActionButton(
             onPressed: () => _showAddContentDialog(context, collectionsNotifier),
-            tooltip: 'Add test content',
+            tooltip: 'Add test content or screenshot',
             child: const Icon(Icons.add),
           ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         );
       },
     );
   }
 
   void _showAddContentDialog(
+    BuildContext context,
+    CollectionsNotifier collectionsNotifier,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Add Content', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.add_box),
+              title: const Text('Add Test Content'),
+              onTap: () {
+                Navigator.pop(context);
+                _showTestContentDialog(context, collectionsNotifier);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.image),
+              title: const Text('Simulate Screenshot (Windows only)'),
+              onTap: () {
+                Navigator.pop(context);
+                ShareIntentService.addTestContent(
+                  collectionsNotifier,
+                  ContentType.screenshot,
+                  title: 'Screenshot',
+                  description: 'Simulated screenshot from device',
+                  source: 'Screenshot',
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showTestContentDialog(
     BuildContext context,
     CollectionsNotifier collectionsNotifier,
   ) {

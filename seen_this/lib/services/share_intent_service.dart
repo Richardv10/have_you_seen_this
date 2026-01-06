@@ -1,24 +1,27 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../providers/collections_notifier.dart';
+import 'mobile_share_intent_handler.dart';
 
-/// Service to handle incoming shared content from other apps
-/// Note: This is a stub version for Windows/desktop testing.
-/// On Android/iOS, the actual receive_sharing_intent would be used.
+/// Service to manage incoming share intents from social media apps
+/// On Android/iOS: Listens for shares from Facebook, TikTok, Instagram, etc.
 class ShareIntentService {
-  /// Listen for shared content and add to today's collection
-  /// Stub version - returns immediately on non-mobile platforms
+  /// Initialize share intent listening
+  /// Call this in main.dart's initState to start receiving shares
   static void listenForSharedContent(
     BuildContext context,
     CollectionsNotifier collectionsNotifier,
   ) {
-    // Stub: Share intent is handled natively on Android/iOS
-    // For development/testing on Windows, use the UI button to add content
-    print('Share intent listener initialized (desktop mode)');
+    // Setup listeners for both text and media shares
+    MobileShareIntentHandler.setupTextListener(collectionsNotifier);
+    MobileShareIntentHandler.setupMediaListener(collectionsNotifier);
+
+    print(
+      '🚀 Share intent service initialized - app can now receive shares from social media',
+    );
   }
 
-  /// Helper method to manually add test content
-  /// Use this to test the app without needing actual share intent
+  /// Manually add test content (for testing without sharing from another app)
   static Future<void> addTestContent(
     CollectionsNotifier collectionsNotifier,
     ContentType type, {
@@ -62,6 +65,11 @@ class ShareIntentService {
       case ContentType.other:
         return 'Other test content';
     }
+  }
+
+  /// Cleanup resources when app closes
+  static void dispose() {
+    MobileShareIntentHandler.dispose();
   }
 }
 
