@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/models.dart';
+import '../services/reshare_service.dart';
 
 /// Widget displaying a single piece of shared content
 class ContentCard extends StatelessWidget {
@@ -94,8 +95,25 @@ class ContentCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Options',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              const Divider(),
               ListTile(
-                leading: const Icon(Icons.share),
+                leading: const Icon(Icons.share, color: Colors.blue),
+                title: const Text('Reshare via Chat/IM'),
+                subtitle: const Text('WhatsApp, Telegram, Email, etc.'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _reshareContent(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share_outlined),
                 title: const Text('Share'),
                 onTap: () {
                   Navigator.pop(context);
@@ -123,6 +141,27 @@ class ContentCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Reshare content to chat/IM apps
+  Future<void> _reshareContent(BuildContext context) async {
+    try {
+      await ReshareService.reshareContent(content);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Opening share options...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing: $e')),
+        );
+      }
+    }
   }
 
   /// Share the content using system share dialog
