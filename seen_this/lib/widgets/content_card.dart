@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:io';
 import '../models/models.dart';
+import '../providers/collections_notifier.dart';
 import '../services/reshare_service.dart';
 
 /// Widget displaying a single piece of shared content
@@ -25,6 +28,17 @@ class ContentCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Show thumbnail for media content
+              if (content.contentType == ContentType.media && 
+                  content.contentData != null &&
+                  _isImageOrVideo(content.contentData!))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildMediaThumbnail(content.contentData!),
+                  ),
+                ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -83,6 +97,123 @@ class ContentCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Check if the file path is an image or video
+  bool _isImageOrVideo(String filePath) {
+    final extension = filePath.toLowerCase().split('.').last;
+    final imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+    final videoExtensions = ['mp4', 'mkv', 'webm', 'avi', 'mov', 'flv', 'wmv'];
+    
+    return imageExtensions.contains(extension) || 
+           videoExtensions.contains(extension);
+  }
+
+  /// Build media thumbnail widget
+  Widget _buildMediaThumbnail(String filePath) {
+    try {
+      final extension = filePath.toLowerCase().split('.').last;
+      final videoExtensions = ['mp4', 'mkv', 'webm', 'avi', 'mov', 'flv', 'wmv'];
+      final isVideo = videoExtensions.contains(extension);
+
+      if (isVideo) {
+        // Video thumbnail with play icon overlay
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: double.infinity,
+              height: 200,
+              color: Colors.grey[300],
+              child: const Icon(
+                Icons.video_library,
+                size: 64,
+                color: Colors.grey,
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.6),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: const Icon(
+                Icons.play_arrow,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+          ],
+        );
+      } else {
+        // Image thumbnail - check if it's a file path or a content URI
+        if (filePath.startsWith('content://') || filePath.startsWith('file://')) {
+          // It's a URI, try to load it
+          return _buildImageFromUri(filePath);
+        } else {
+          // It's a file path
+          try {
+            final file = File(filePath);
+            if (!file.existsSync()) {
+              return _buildThumbnailPlaceholder('File not found');
+            }
+            return Image.file(
+              file,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildThumbnailPlaceholder('Image error');
+              },
+            );
+          } catch (e) {
+            return _buildThumbnailPlaceholder('Cannot load file');
+          }
+        }
+      }
+    } catch (e) {
+      return _buildThumbnailPlaceholder('Error loading media');
+    }
+  }
+
+  /// Build image from URI (content:// or file://)
+  Widget _buildImageFromUri(String uri) {
+    return Image.network(
+      uri,
+      width: double.infinity,
+      height: 200,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return _buildThumbnailPlaceholder('URI image error');
+      },
+    );
+  }
+
+  /// Build placeholder when thumbnail can't be loaded
+  Widget _buildThumbnailPlaceholder(String message) {
+    return Container(
+      width: double.infinity,
+      height: 200,
+      color: Colors.grey[300],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.broken_image,
+            size: 48,
+            color: Colors.grey[600],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -147,11 +278,25 @@ class ContentCard extends StatelessWidget {
   Future<void> _reshareContent(BuildContext context) async {
     try {
       await ReshareService.reshareContent(content);
+      
+      // Persist the reshared item to today's collection so it can be reshared again
+      if (context.mounted) {
+        final collectionsNotifier = context.read<CollectionsNotifier>();
+        await collectionsNotifier.addContentToday(
+          content.contentType,
+          title: content.title,
+          description: content.description,
+          source: '${content.source} (reshared)',
+          contentData: content.contentData,
+          mimeType: content.mimeType,
+        );
+      }
+      
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Opening share options...'),
-            duration: Duration(seconds: 1),
+            content: Text('Reshared! Item saved to today\'s collection'),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -172,7 +317,6 @@ class ContentCard extends StatelessWidget {
 
   /// Copy content to clipboard
   void _copyToClipboard(BuildContext context) {
-    final text = _buildShareText();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Copied to clipboard!')),
     );
@@ -242,7 +386,7 @@ class _ContentTypeIcon extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: color, size: 24),

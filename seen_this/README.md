@@ -1,182 +1,151 @@
 # seen_this
 
-A personal repository app for sharable content from social media, links, screenshots, and more.
-
-## Overview
-
-**seen_this** is a Flutter application that lets you collect and organize content from other apps. Simply use the "Share to" feature from any app, and your content is automatically saved and organized by date for later browsing and sharing with friends.
+A Flutter app that captures and organizes content shared to it from other apps.
 
 ## Features
 
-✨ **Share to App** - Receive content from Chrome, Instagram, Twitter, Photos, and more  
-📅 **Daily Organization** - Content automatically grouped by date  
-💾 **Local Storage** - All data stays on your device, nothing uploaded  
-🎯 **Clean Interface** - Intuitive three-screen navigation  
-⚡ **Quick Access** - Instantly view today's shares or browse archives  
-🗑️ **Easy Management** - Delete items individually or by date  
-📤 **Manual Sharing** - Share collections with friends when you want  
+- 📱 **Share Intent Handling** - Receive text, links, images, and videos shared from other apps
+- 🗂️ **Organize by Date** - Content automatically grouped by the day it was shared
+- 🔄 **Reshare to Chat** - Send saved content to WhatsApp, Telegram, Email, and other messaging apps
+- 🎨 **Image & Video Previews** - View thumbnails of images and video previews
+- 💾 **Persistent Storage** - All content saved locally using SharedPreferences
+- 🎯 **Material 3 Design** - Modern, responsive UI with three-tab navigation
 
-## Quick Start
+## Getting Started
 
+### Prerequisites
+- Flutter 3.10+
+- Android 10+ (for emulator or physical device)
+- iOS support coming soon
+
+### Installation
+
+1. Clone the repository:
 ```bash
-# Install dependencies
-flutter pub get
-
-# Run the app
-flutter run
+git clone <repository-url>
+cd seen_this
 ```
 
-## How to Use
+2. Install dependencies:
+```bash
+flutter pub get
+```
 
-1. **Share Content** - Use "Share" from any app and select "seen_this"
-2. **View Today** - Check the Today tab for today's shares
-3. **Browse Archive** - See older shares in the Archive tab
-4. **Manage Content** - Long-press items for options (copy, share, delete)
-5. **Organize** - Delete by date or clear individual items
+3. Run the app:
+```bash
+flutter run -d <device_id>
+```
 
-## App Structure
+### Build APK
 
-### Three Main Screens
-- **Today Screen** - All shares from today with timestamps
-- **Archive Screen** - Historical content grouped by date
-- **Settings Screen** - App configuration and data management
+Debug build:
+```bash
+flutter build apk --debug
+```
 
-### Supported Content Types
-- 🔗 **Links** - URLs from any app
-- 📝 **Text** - Copied or shared text
-- 📸 **Screenshots** - Images from Gallery or Messages
-- 🎬 **Media** - Videos and other files
-- 📦 **Other** - Any other shareable content
+Release build:
+```bash
+flutter build apk --release
+```
 
-## Documentation
+## Usage
 
-Comprehensive documentation is available:
+### Sharing Content
+1. Open any app (WhatsApp, Instagram, Chrome, etc.)
+2. Share text, link, image, or video
+3. Select **seen_this** from the share menu
+4. Content automatically appears in the Today tab
 
-- **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - Start here! Quick tips and troubleshooting
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical system design
-- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Detailed setup and testing
-- **[IOS_CONFIGURATION.md](IOS_CONFIGURATION.md)** - iOS-specific setup
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - What's been built
-- **[DEVELOPMENT_CHECKLIST.md](DEVELOPMENT_CHECKLIST.md)** - Testing checklist
-- **[EXAMPLE_USAGE.dart](EXAMPLE_USAGE.dart)** - Code examples
-
-## Technology Stack
-
-- **Framework**: Flutter 3.10+
-- **State Management**: Provider
-- **Local Storage**: SharedPreferences
-- **Share Intent**: receive_sharing_intent
-- **UI**: Material 3
-- **Date/Time**: intl
-- **ID Generation**: uuid
+### Managing Content
+- **Today Tab** - View today's shares
+- **Archive Tab** - View shares from previous days
+- **Settings Tab** - Clear all data
+- **Long-press** any content card to:
+  - Reshare via chat (WhatsApp, Telegram, etc.)
+  - Share using system share dialog
+  - Delete the item
 
 ## Project Structure
 
 ```
 lib/
-├── main.dart                    # App entry point
-├── models/                      # Data models
-│   ├── shared_content.dart      # Individual content item
-│   └── daily_collection.dart    # Date-based collection
-├── services/                    # Business logic
-│   ├── storage_service.dart     # Local persistence
-│   └── share_intent_service.dart # Share handling
-├── providers/                   # State management
-│   └── collections_notifier.dart # Reactive state
-├── screens/                     # Main screens
-│   ├── today_screen.dart
-│   ├── archive_screen.dart
-│   └── settings_screen.dart
-└── widgets/                     # Reusable components
-    └── content_card.dart
+├── main.dart                          # App entry point & navigation
+├── models/                            # Data models
+│   ├── shared_content.dart           # Content model
+│   └── daily_collection.dart         # Collection model
+├── providers/                         # State management
+│   └── collections_notifier.dart     # ChangeNotifier for state
+├── screens/                           # UI screens
+│   ├── today_screen.dart             # Today's content
+│   ├── archive_screen.dart           # Archived content
+│   └── settings_screen.dart          # Settings & clear data
+├── services/                          # Business logic
+│   ├── storage_service.dart          # Local storage (SharedPreferences)
+│   ├── share_intent_service.dart     # Share initialization
+│   ├── mobile_share_intent_handler.dart  # Android integration
+│   └── reshare_service.dart          # Reshare to chat
+└── widgets/                           # Reusable widgets
+    └── content_card.dart             # Content display card
 ```
 
-## Data Storage
+## Architecture
 
-All data is stored locally using SharedPreferences in JSON format. Each shared item includes:
-- Unique ID
-- Content type
-- Title and description
-- Timestamp
-- Source app
-- Content data (URL, text, or file path)
-- MIME type
+- **State Management**: Provider pattern with ChangeNotifier
+- **Storage**: SharedPreferences with JSON serialization
+- **Platform Integration**: Method channels for Android share intents
+- **UI Framework**: Flutter Material 3
 
-Collections are organized by date and can be easily queried, updated, or deleted.
+## Dependencies
+
+- `provider` - State management
+- `shared_preferences` - Local storage
+- `share_plus` - System share integration
+- `intl` - Date formatting
+- `uuid` - Unique identifiers
+- `path_provider` - File paths
 
 ## Android Configuration
 
-✅ Already configured in `android/app/src/main/AndroidManifest.xml`:
-- Share intent filters for SEND and SEND_MULTIPLE
-- Support for text, images, videos, and all file types
-- Ready to appear in the share menu
+The app handles share intents from other apps via `AndroidManifest.xml`:
+- Listens for `ACTION_SEND` (single share)
+- Listens for `ACTION_SEND_MULTIPLE` (multiple files)
+- Accepts: text, images, videos, and other files
 
-## iOS Configuration
+## Known Limitations
 
-To enable iOS share intent handling:
-1. See [IOS_CONFIGURATION.md](IOS_CONFIGURATION.md) for detailed steps
-2. Add document types to `ios/Runner/Info.plist`
-3. App will appear in iOS share sheet automatically
+- iOS support not yet implemented
+- Media files stored in app cache (consider implementing periodic cleanup)
+- No analytics integration
+- Test coverage is minimal (placeholder tests present)
 
 ## Future Enhancements
 
-- 📸 Image thumbnails in content cards
-- 🔗 Link preview metadata
-- 🏷️ Tags and categories
-- 🔍 Search functionality
-- 📊 Statistics dashboard
-- ☁️ Cloud backup option
-- 👥 Share collections with friends
-- 🎨 Theme customization
-- 📱 Home screen widget
-- 🔔 Push notifications
+- [ ] iOS support with native share handling
+- [ ] Advanced search and filtering
+- [ ] Tags and categories for content
+- [ ] Export functionality
+- [ ] Cloud sync
+- [ ] Proper test suite with comprehensive coverage
+- [ ] Logging framework for production
+- [ ] Analytics integration
 
-## Troubleshooting
+## Development Status
 
-### App won't start
-```bash
-flutter clean
-flutter pub get
-flutter run
-```
-
-### Content not appearing
-- Make sure app is fully loaded
-- Switch to Today tab
-- Check that content was successfully shared
-
-### Share option not visible
-- Rebuild and reinstall the app
-- Restart your device
-- Check AndroidManifest.xml is properly configured
-
-See [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for more troubleshooting tips.
-
-## Privacy & Security
-
-✅ All data is stored locally on your device  
-✅ No cloud connectivity or sync  
-✅ No tracking or analytics  
-✅ No personal data collection  
-✅ You control when to share content  
-
-## Performance
-
-- **Load Time**: ~200-500ms startup
-- **Max Items**: Supports 1000+ items
-- **Memory Usage**: ~50-100MB active
-- **Storage**: ~1KB per saved item
+✅ **Alpha Ready** - Core features complete and tested on Android emulator
+- All compilation errors fixed
+- Code quality verified (zero warnings)
+- Share intent handling working
+- Media thumbnails displaying correctly
 
 ## License
 
-Private Project - Personal Use
+TBD
 
 ## Support
 
-For detailed information and examples, refer to the documentation files included in the project.
+For issues or feature requests, please open an issue on the project repository.
 
 ---
 
-**Status**: ✅ Fully Implemented and Ready for Testing
-
-Start with [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for immediate usage!
+**Version**: 1.0.0  
+**Last Updated**: January 7, 2026

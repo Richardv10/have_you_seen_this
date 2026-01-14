@@ -26,6 +26,7 @@ class CollectionsNotifier extends ChangeNotifier {
       _collections = await _storageService.getAllCollections();
       _todayCollection = await _storageService.getTodaysCollection();
     } catch (e) {
+      // ignore: avoid_print
       print('Error initializing collections: $e');
     }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
 import '../providers/collections_notifier.dart';
 import 'mobile_share_intent_handler.dart';
 
@@ -16,6 +15,7 @@ class ShareIntentService {
     MobileShareIntentHandler.setupTextListener(collectionsNotifier);
     MobileShareIntentHandler.setupMediaListener(collectionsNotifier);
 
+    // ignore: avoid_print
     print(
       '🚀 Share intent service initialized - app can now receive shares from social media',
     );

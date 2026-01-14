@@ -55,6 +55,7 @@ class StorageService {
       collections.sort((a, b) => b.date.compareTo(a.date));
       return collections;
     } catch (e) {
+      // ignore: avoid_print
       print('Error parsing collections: $e');
       return [];
     }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/models.dart';
 import '../providers/collections_notifier.dart';
 import '../widgets/content_card.dart';
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/collections_notifier.dart';
 
 /// Settings screen for app configuration
 class SettingsScreen extends StatelessWidget {
@@ -70,12 +72,15 @@ class SettingsScreen extends StatelessWidget {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                // TODO: Implement clear all
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Data cleared')),
-                );
+              onPressed: () async {
+                final notifier = context.read<CollectionsNotifier>();
+                await notifier.deleteCollection(DateTime.now());
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Data cleared')),
+                  );
+                }
               },
               child: const Text('Clear', style: TextStyle(color: Colors.red)),
             ),
