@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/models.dart';
 import '../providers/collections_notifier.dart';
+import 'link_preview_service.dart';
 
 /// Handles incoming share intents from Facebook, TikTok, and other apps
 /// Works on Android and iOS to receive shared content
@@ -78,9 +79,24 @@ class MobileShareIntentHandler {
           ? ContentType.link
           : ContentType.text;
 
+      // For links, try to fetch the page title from Open Graph metadata
+      String title = 'Shared Link';
+      if (contentType == ContentType.link) {
+        try {
+          final metadata = await LinkPreviewService.getMetadata(sharedText);
+          if (metadata?.title != null && metadata!.title!.isNotEmpty) {
+            title = metadata.title!;
+          }
+        } catch (e) {
+          // Silent failure, use default title
+        }
+      } else {
+        title = 'Shared Text';
+      }
+
       await collectionsNotifier.addContentToday(
         contentType,
-        title: contentType == ContentType.link ? 'Shared Link' : 'Shared Text',
+        title: title,
         description: sharedText,
         source: 'Reshared via seen_this',
         contentData: contentType == ContentType.link ? sharedText : null,
