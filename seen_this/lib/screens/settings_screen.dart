@@ -56,7 +56,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           ListTile(
             title: const Text('seen_this'),
-            subtitle: const Text('v1.0.0'),
+            subtitle: const Text('v1.0.0-beta'),
             leading: const Icon(Icons.info_outline),
           ),
           const Divider(),

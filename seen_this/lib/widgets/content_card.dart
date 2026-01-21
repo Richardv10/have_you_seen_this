@@ -33,9 +33,11 @@ class _ContentCardState extends State<ContentCard> {
   void initState() {
     super.initState();
     // Fetch metadata for non-YouTube links
-    if (widget.content.contentType == ContentType.link &&
-        !_isYouTubeLink(widget.content.contentData ?? widget.content.description ?? '')) {
-      _fetchMetadata();
+    if (widget.content.contentType == ContentType.link) {
+      final url = widget.content.contentData ?? widget.content.description;
+      if (url != null && _extractYouTubeVideoId(url) == null) {
+        _fetchMetadata();
+      }
     }
   }
 
@@ -97,9 +99,9 @@ class _ContentCardState extends State<ContentCard> {
               // Show YouTube thumbnail for YouTube links
               if (widget.content.contentType == ContentType.link)
                 _buildYouTubeThumbnailSection(context, widget.content),
-              // Show generic link preview for other links
+              // Show generic link preview for other links (not YouTube)
               if (widget.content.contentType == ContentType.link &&
-                  !_isYouTubeLink(widget.content.contentData ?? widget.content.description ?? '') &&
+                  _extractYouTubeVideoId(widget.content.contentData ?? widget.content.description ?? '') == null &&
                   _metadataLoaded &&
                   _linkMetadata?.imageUrl != null)
                 Padding(
@@ -152,9 +154,9 @@ class _ContentCardState extends State<ContentCard> {
                     ),
                   ),
                 ),
-              // Show loading indicator while fetching metadata
+              // Show loading indicator while fetching metadata for non-YouTube links
               if (widget.content.contentType == ContentType.link &&
-                  !_isYouTubeLink(widget.content.contentData ?? widget.content.description ?? '') &&
+                  _extractYouTubeVideoId(widget.content.contentData ?? widget.content.description ?? '') == null &&
                   !_metadataLoaded)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -414,25 +416,34 @@ class _ContentCardState extends State<ContentCard> {
     );
   }
 
-  /// Check if a link is a YouTube link
-  bool _isYouTubeLink(String url) {
-    return url.contains('youtube.com') || url.contains('youtu.be');
-  }
-
-  /// Extract YouTube video ID from URL
+  /// Extract YouTube video ID from any YouTube URL format
+  /// Returns null if URL is not a valid YouTube link
   String? _extractYouTubeVideoId(String url) {
     try {
-      if (url.contains('youtube.com')) {
-        if (url.contains('/live/')) {
-          final videoIdMatch = RegExp(r'\/live\/([^?&]+)').firstMatch(url);
-          return videoIdMatch?.group(1);
-        }
-        final videoIdMatch = RegExp(r'[?&]v=([^&]+)').firstMatch(url);
-        return videoIdMatch?.group(1);
-      } else if (url.contains('youtu.be')) {
-        final videoIdMatch = RegExp(r'youtu\.be\/([^?&]+)').firstMatch(url);
-        return videoIdMatch?.group(1);
+      // Not a YouTube URL at all
+      if (!url.contains('youtube.com') && !url.contains('youtu.be')) {
+        return null;
       }
+
+      // Try short URL format: youtu.be/ID or youtu.be/ID?params
+      var match = RegExp(r'youtu\.be/([a-zA-Z0-9_-]+)').firstMatch(url);
+      if (match != null) return match.group(1);
+
+      // Try standard watch format: ?v=ID or &v=ID
+      match = RegExp(r'[?&]v=([a-zA-Z0-9_-]+)').firstMatch(url);
+      if (match != null) return match.group(1);
+
+      // Try live format: /live/ID
+      match = RegExp(r'/live/([a-zA-Z0-9_-]+)').firstMatch(url);
+      if (match != null) return match.group(1);
+
+      // Try shorts format: /shorts/ID
+      match = RegExp(r'/shorts/([a-zA-Z0-9_-]+)').firstMatch(url);
+      if (match != null) return match.group(1);
+
+      // Try embed format: /embed/ID
+      match = RegExp(r'/embed/([a-zA-Z0-9_-]+)').firstMatch(url);
+      if (match != null) return match.group(1);
     } catch (e) {
       // Silent failure
     }
@@ -441,13 +452,22 @@ class _ContentCardState extends State<ContentCard> {
 
   /// Build YouTube thumbnail section - checks both contentData and description
   Widget _buildYouTubeThumbnailSection(BuildContext context, SharedContent content) {
-    // Try to get URL from contentData first, then description
+    // Try to extract video ID from contentData first, then description
     String? youtubeUrl;
-    if (content.contentData != null && _isYouTubeLink(content.contentData!)) {
-      youtubeUrl = content.contentData;
-    } else if (content.description != null && _isYouTubeLink(content.description!)) {
-      youtubeUrl = content.description;
-    } else {
+    String? videoId;
+
+    if (content.contentData != null) {
+      videoId = _extractYouTubeVideoId(content.contentData!);
+      if (videoId != null) youtubeUrl = content.contentData;
+    }
+
+    if (youtubeUrl == null && content.description != null) {
+      videoId = _extractYouTubeVideoId(content.description!);
+      if (videoId != null) youtubeUrl = content.description;
+    }
+
+    // If we couldn't extract a video ID, it's not YouTube
+    if (youtubeUrl == null || videoId == null) {
       return const SizedBox.shrink();
     }
     
@@ -459,7 +479,7 @@ class _ContentCardState extends State<ContentCard> {
           borderRadius: BorderRadius.circular(8),
           child: Stack(
             children: [
-              _buildYouTubeThumbnail(youtubeUrl!),
+              _buildYouTubeThumbnail(youtubeUrl),
               Positioned.fill(
                 child: Container(
                   color: Colors.black.withValues(alpha: 0.3),

@@ -34,7 +34,7 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               // Title
               Text(
-                'Welcome to Have You Seen This?',
+                'Welcome to: Have You Seen This?',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -43,7 +43,7 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 16),
               // Description
               Text(
-                'Keep track of content your friends share with you',
+                'Keep track of stuff you want to share later',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Colors.grey,
                     ),
@@ -54,13 +54,13 @@ class WelcomeScreen extends StatelessWidget {
               _InfoTile(
                 icon: Icons.share,
                 title: 'Share Content',
-                description: 'Use your phone\'s share menu to send content to this app',
+                description: 'Select the app from your phones share menu',
               ),
               const SizedBox(height: 16),
               _InfoTile(
                 icon: Icons.calendar_today,
                 title: 'Organize by Day',
-                description: 'All shared content is organized into daily collections',
+                description: 'All content is organized into daily collections',
               ),
               const SizedBox(height: 16),
               _InfoTile(
@@ -72,7 +72,7 @@ class WelcomeScreen extends StatelessWidget {
               _InfoTile(
                 icon: Icons.share_rounded,
                 title: 'Share Again',
-                description: 'Easily reshare your saved items with others',
+                description: 'Easily re-share and group share',
               ),
               const Spacer(),
               // Get Started Button

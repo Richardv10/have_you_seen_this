@@ -1,11 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:math';
 import '../providers/collections_notifier.dart';
 import '../widgets/content_card.dart';
 
 /// Screen displaying today's shared content
-class TodayScreen extends StatelessWidget {
+class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
+
+  @override
+  State<TodayScreen> createState() => _TodayScreenState();
+}
+
+class _TodayScreenState extends State<TodayScreen> {
+  late String _randomPhrase;
+  
+  static const List<String> _phrases = [
+    'Feed me memes!',
+    'I\'m content just sat here, get it?',
+    'I\'m sure it\'s super important',
+    'Show me what you got!',
+    'Send to lovers, send to haters',
+    'Got anything good today?',
+    'This isn\'t going to everybody, right?',
+    'Yes, yes I can\'t believe it either',
+    'What you got for me?',
+    'Make my day baby!',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _randomPhrase = _phrases[Random().nextInt(_phrases.length)];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +43,7 @@ class TodayScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Today\'s Shares'),
+            title: const Text('From Today'),
             elevation: 0,
             centerTitle: true,
           ),
@@ -32,7 +59,7 @@ class TodayScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No shares yet',
+                        _randomPhrase,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: Colors.grey[600],
                             ),

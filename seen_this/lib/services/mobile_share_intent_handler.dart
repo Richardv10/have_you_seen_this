@@ -80,15 +80,34 @@ class MobileShareIntentHandler {
           : ContentType.text;
 
       // For links, try to fetch the page title from Open Graph metadata
-      String title = 'Shared Link';
+      String? title;
       if (contentType == ContentType.link) {
         try {
           final metadata = await LinkPreviewService.getMetadata(sharedText);
-          if (metadata?.title != null && metadata!.title!.isNotEmpty) {
-            title = metadata.title!;
+          if (metadata != null && metadata.title != null && metadata.title!.isNotEmpty) {
+            title = metadata.title;
+            // ignore: avoid_print
+            print('✅ Extracted title from metadata: $title');
+          } else {
+            // ignore: avoid_print
+            print('⚠️ No title found in metadata, using domain as title');
+            title = Uri.parse(sharedText).host.replaceFirst('www.', '');
+            if (title.isEmpty) {
+              title = 'Shared Link';
+            }
           }
         } catch (e) {
-          // Silent failure, use default title
+          // Silent failure, use domain or default title
+          // ignore: avoid_print
+          print('⚠️ Error fetching metadata: $e');
+          try {
+            title = Uri.parse(sharedText).host.replaceFirst('www.', '');
+            if (title.isEmpty) {
+              title = 'Shared Link';
+            }
+          } catch (_) {
+            title = 'Shared Link';
+          }
         }
       } else {
         title = 'Shared Text';
@@ -98,7 +117,6 @@ class MobileShareIntentHandler {
         contentType,
         title: title,
         description: sharedText,
-        source: 'Reshared via seen_this',
         contentData: contentType == ContentType.link ? sharedText : null,
       );
 
