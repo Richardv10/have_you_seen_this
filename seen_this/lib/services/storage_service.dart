@@ -5,6 +5,7 @@ import '../models/models.dart';
 /// Service for managing local storage of daily collections
 class StorageService {
   static const String _collectionsKey = 'daily_collections';
+  static const String _welcomeShownKey = 'welcome_screen_shown';
   late SharedPreferences _prefs;
 
   /// Initialize the storage service
@@ -128,5 +129,15 @@ class StorageService {
       'oldestDate': collections.isNotEmpty ? collections.last.date : null,
       'newestDate': collections.isNotEmpty ? collections.first.date : null,
     };
+  }
+
+  /// Check if welcome screen has been shown
+  bool hasSeenWelcome() {
+    return _prefs.getBool(_welcomeShownKey) ?? false;
+  }
+
+  /// Mark welcome screen as shown
+  Future<void> setWelcomeShown() async {
+    await _prefs.setBool(_welcomeShownKey, true);
   }
 }

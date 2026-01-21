@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import 'services/storage_service.dart';
 import 'services/share_intent_service.dart';
 import 'providers/collections_notifier.dart';
+import 'providers/theme_notifier.dart';
 import 'screens/today_screen.dart';
 import 'screens/archive_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,21 +34,30 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => CollectionsNotifier(storageService)..init(),
         ),
-      ],
-      child: MaterialApp(
-        title: 'seen_this',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        ChangeNotifierProvider(
+          create: (_) => ThemeNotifier(),
         ),
-        home: const HomeScreen(),
+      ],
+      child: Consumer<ThemeNotifier>(
+        builder: (context, themeNotifier, _) {
+          return MaterialApp(
+            title: 'seen_this',
+            theme: themeNotifier.getThemeData(),
+            home: HomeScreen(storageService: storageService),
+          );
+        },
       ),
     );
   }
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final StorageService storageService;
+
+  const HomeScreen({
+    super.key,
+    required this.storageService,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -54,6 +65,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  bool _showWelcome = false;
+  bool _initialized = false;
 
   static const List<Widget> _screens = <Widget>[
     TodayScreen(),
@@ -64,10 +77,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _checkWelcomeStatus();
     // Listen for shared content from other apps
     final collectionsNotifier =
         context.read<CollectionsNotifier>();
     ShareIntentService.listenForSharedContent(context, collectionsNotifier);
+  }
+
+  Future<void> _checkWelcomeStatus() async {
+    final hasSeenWelcome = widget.storageService.hasSeenWelcome();
+    setState(() {
+      _showWelcome = !hasSeenWelcome;
+      _initialized = true;
+    });
+  }
+
+  void _dismissWelcome() async {
+    await widget.storageService.setWelcomeShown();
+    setState(() {
+      _showWelcome = false;
+    });
   }
 
   void _onItemTapped(int index) {
@@ -78,6 +107,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_showWelcome) {
+      return WelcomeScreen(onDismiss: _dismissWelcome);
+    }
+
     return Scaffold(
       body: _screens.elementAt(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(

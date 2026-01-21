@@ -83,6 +83,7 @@ class MobileShareIntentHandler {
         title: contentType == ContentType.link ? 'Shared Link' : 'Shared Text',
         description: sharedText,
         source: 'Reshared via seen_this',
+        contentData: contentType == ContentType.link ? sharedText : null,
       );
 
       // ignore: avoid_print

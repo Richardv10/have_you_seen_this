@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/collections_notifier.dart';
+import '../providers/theme_notifier.dart';
 
 /// Settings screen for app configuration
 class SettingsScreen extends StatelessWidget {
@@ -20,10 +21,35 @@ class SettingsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
+              'Appearance',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleSmall?.color,
+                  ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Consumer<ThemeNotifier>(
+            builder: (context, themeNotifier, _) {
+              return ListTile(
+                title: const Text('Dark Mode'),
+                leading: const Icon(Icons.dark_mode_outlined),
+                trailing: Switch(
+                  value: themeNotifier.isDarkMode,
+                  onChanged: (_) => themeNotifier.toggleTheme(),
+                ),
+              );
+            },
+          ),
+          const Divider(),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
               'About',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.titleSmall?.color,
                   ),
             ),
           ),
@@ -41,7 +67,7 @@ class SettingsScreen extends StatelessWidget {
               'Data',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.titleSmall?.color,
                   ),
             ),
           ),
