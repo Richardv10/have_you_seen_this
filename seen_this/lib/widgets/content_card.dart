@@ -646,7 +646,7 @@ class _ContentCardState extends State<ContentCard> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Reshared! Item saved to today\'s collection'),
+            content: Text('Item saved to today\'s collection'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -694,7 +694,7 @@ class _ContentCardState extends State<ContentCard> {
     }
     
     buffer.writeln('\n—');
-    buffer.writeln('Shared via seen_this');
+    buffer.writeln('Shared via seen this');
     
     return buffer.toString();
   }
