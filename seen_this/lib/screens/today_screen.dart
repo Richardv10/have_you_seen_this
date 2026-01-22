@@ -78,12 +78,14 @@ class _TodayScreenState extends State<TodayScreen> {
                   padding: const EdgeInsets.all(12),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
+                    final item = items[index];
                     return ContentCard(
-                      content: items[index],
+                      key: ValueKey('content_${item.id}'),
+                      content: item,
                       onDelete: () {
                         collectionsNotifier.removeContent(
                           todayCollection!.date,
-                          items[index].id,
+                          item.id,
                         );
                       },
                     );

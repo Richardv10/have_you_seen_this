@@ -120,8 +120,10 @@ class _DaySection extends StatelessWidget {
         ),
         ...collection.items.map(
           (content) => Padding(
+            key: ValueKey(content.id),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: ContentCard(
+              key: ValueKey('content_${content.id}'),
               content: content,
               onDelete: () => onRemoveItem(content.id),
             ),

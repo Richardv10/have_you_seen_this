@@ -20,7 +20,7 @@ class ThemeNotifier extends ChangeNotifier {
 
   /// Get the appropriate theme data
   ThemeData getThemeData() {
-    const seedColor = Colors.deepPurple;
+    const seedColor = Color(0xFF1e3a8a); // Dark blue color
 
     if (_isDarkMode) {
       return ThemeData(

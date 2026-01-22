@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'services/storage_service.dart';
+import 'services/database_service.dart';
 import 'services/share_intent_service.dart';
 import 'providers/collections_notifier.dart';
 import 'providers/theme_notifier.dart';
@@ -8,23 +8,24 @@ import 'screens/today_screen.dart';
 import 'screens/archive_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize storage service
-  final storageService = StorageService();
-  await storageService.init();
+  // Initialize database service
+  final databaseService = DatabaseService();
+  await databaseService.init();
   
-  runApp(MyApp(storageService: storageService));
+  runApp(MyApp(databaseService: databaseService));
 }
 
 class MyApp extends StatelessWidget {
-  final StorageService storageService;
+  final DatabaseService databaseService;
 
   const MyApp({
     super.key,
-    required this.storageService,
+    required this.databaseService,
   });
 
   @override
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => CollectionsNotifier(storageService)..init(),
+          create: (_) => CollectionsNotifier(databaseService)..init(),
         ),
         ChangeNotifierProvider(
           create: (_) => ThemeNotifier(),
@@ -43,7 +44,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'seen_this',
             theme: themeNotifier.getThemeData(),
-            home: HomeScreen(storageService: storageService),
+            home: HomeScreen(databaseService: databaseService),
           );
         },
       ),
@@ -52,11 +53,11 @@ class MyApp extends StatelessWidget {
 }
 
 class HomeScreen extends StatefulWidget {
-  final StorageService storageService;
+  final DatabaseService databaseService;
 
   const HomeScreen({
     super.key,
-    required this.storageService,
+    required this.databaseService,
   });
 
   @override
@@ -67,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _showWelcome = false;
   bool _initialized = false;
+  bool _showSplash = true;
 
   static const List<Widget> _screens = <Widget>[
     TodayScreen(),
@@ -77,6 +79,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Show splash screen for 1.5 seconds
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      setState(() {
+        _showSplash = false;
+      });
+    });
     _checkWelcomeStatus();
     // Listen for shared content from other apps
     final collectionsNotifier =
@@ -85,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkWelcomeStatus() async {
-    final hasSeenWelcome = widget.storageService.hasSeenWelcome();
+    final hasSeenWelcome = await widget.databaseService.hasSeenWelcome();
     setState(() {
       _showWelcome = !hasSeenWelcome;
       _initialized = true;
@@ -93,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _dismissWelcome() async {
-    await widget.storageService.setWelcomeShown();
+    await widget.databaseService.setWelcomeShown();
     setState(() {
       _showWelcome = false;
     });
@@ -107,6 +115,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showSplash) {
+      return const SplashScreen();
+    }
+
     if (!_initialized) {
       return const Scaffold(
         body: Center(

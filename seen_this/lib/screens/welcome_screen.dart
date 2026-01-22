@@ -17,24 +17,9 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              // Icon/Title
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(
-                  Icons.check_circle,
-                  size: 50,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 24),
               // Title
               Text(
-                'Welcome to: Have You Seen This?',
+                'Welcome to: Seen This?',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -53,20 +38,20 @@ class WelcomeScreen extends StatelessWidget {
               // How it works
               _InfoTile(
                 icon: Icons.share,
-                title: 'Share Content',
+                title: 'Share to the app',
                 description: 'Select the app from your phones share menu',
               ),
               const SizedBox(height: 16),
               _InfoTile(
                 icon: Icons.calendar_today,
-                title: 'Organize by Day',
-                description: 'All content is organized into daily collections',
+                title: 'Organized by Day',
+                description: 'Content is organized into a daily scroll',
               ),
               const SizedBox(height: 16),
               _InfoTile(
                 icon: Icons.archive,
                 title: 'Archive Old Items',
-                description: 'Move items to Archive when you\'re done with them',
+                description: 'Content moves to the Archive automatically',
               ),
               const SizedBox(height: 16),
               _InfoTile(
