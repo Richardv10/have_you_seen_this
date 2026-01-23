@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 import 'services/database_service.dart';
 import 'services/share_intent_service.dart';
 import 'services/tag_suggestion_service.dart';
+import 'services/share_group_service.dart';
+import 'services/share_history_service.dart';
 import 'providers/collections_notifier.dart';
 import 'providers/theme_notifier.dart';
+import 'providers/share_group_notifier.dart';
 import 'screens/today_screen.dart';
 import 'screens/archive_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/share_groups_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/splash_screen.dart';
 
@@ -26,20 +30,34 @@ void main() async {
   final tagSuggestionService = TagSuggestionService(databaseService);
   await tagSuggestionService.init();
   
+  // Initialize share group service
+  final shareGroupService = ShareGroupService();
+  await shareGroupService.init();
+  
+  // Initialize share history service
+  final shareHistoryService = ShareHistoryService();
+  await shareHistoryService.init();
+  
   runApp(MyApp(
     databaseService: databaseService,
     tagSuggestionService: tagSuggestionService,
+    shareGroupService: shareGroupService,
+    shareHistoryService: shareHistoryService,
   ));
 }
 
 class MyApp extends StatelessWidget {
   final DatabaseService databaseService;
   final TagSuggestionService tagSuggestionService;
+  final ShareGroupService shareGroupService;
+  final ShareHistoryService shareHistoryService;
 
   const MyApp({
     super.key,
     required this.databaseService,
     required this.tagSuggestionService,
+    required this.shareGroupService,
+    required this.shareHistoryService,
   });
 
   @override
@@ -52,8 +70,14 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => ThemeNotifier(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ShareGroupNotifier(shareGroupService)..init(),
+        ),
         Provider(
           create: (_) => tagSuggestionService,
+        ),
+        Provider(
+          create: (_) => shareHistoryService,
         ),
       ],
       child: Consumer<ThemeNotifier>(
@@ -90,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
   static const List<Widget> _screens = <Widget>[
     TodayScreen(),
     ArchiveScreen(),
+    ShareGroupsScreen(),
     SettingsScreen(),
   ];
 
@@ -172,6 +197,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'Archive',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.folder_shared),
+            label: 'Groups',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

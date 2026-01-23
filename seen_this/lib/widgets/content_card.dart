@@ -6,9 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../models/models.dart';
 import '../providers/collections_notifier.dart';
+import '../providers/share_group_notifier.dart';
 import '../services/reshare_service.dart';
 import '../services/link_preview_service.dart';
 import '../services/tag_suggestion_service.dart';
+import '../services/share_history_service.dart';
 import '../screens/media_viewer_screen.dart';
 
 /// Widget displaying a single piece of shared content
@@ -609,11 +611,13 @@ class _ContentCardState extends State<ContentCard> {
   void _showOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (BuildContext context) {
         return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
@@ -637,6 +641,14 @@ class _ContentCardState extends State<ContentCard> {
                 onTap: () {
                   Navigator.pop(context);
                   _shareContent();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.folder_shared, color: Colors.purple),
+                title: const Text('Share to Group'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showShareToGroupDialog(context);
                 },
               ),
               // Preview in browser for links
@@ -677,6 +689,7 @@ class _ContentCardState extends State<ContentCard> {
                 },
               ),
             ],
+            ),
           ),
         );
       },
@@ -939,6 +952,125 @@ class _ContentCardState extends State<ContentCard> {
   TagSuggestionService _getTagSuggestionService(BuildContext context) {
     return context.read<TagSuggestionService>();
   }
+
+  /// Show dialog to select a group for batch sharing
+  void _showShareToGroupDialog(BuildContext context) {
+    final groups = context.read<ShareGroupNotifier>().groups;
+
+    if (groups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No groups created yet. Create a group first.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Share to Group'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: groups.length,
+              itemBuilder: (context, index) {
+                final group = groups[index];
+                return ListTile(
+                  title: Text(group.name),
+                  subtitle: Text('${group.contacts.length} contact${group.contacts.length != 1 ? 's' : ''}'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _shareToGroup(context, group);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Share content to all members of a group
+  Future<void> _shareToGroup(
+    BuildContext context,
+    ShareGroup group,
+  ) async {
+    if (group.contacts.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Group has no members.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Get share history service to track shares
+    final shareHistoryService = context.read<ShareHistoryService>();
+
+    try {
+      // Add all contacts to share history
+      for (final contact in group.contacts) {
+        await shareHistoryService.addRecipient(
+          contact.name,
+          contact.phoneNumber,
+          email: contact.email,
+        );
+      }
+
+      // Build a message showing who this is being shared with
+      final contactNames = group.contacts.map((c) => c.name).join(', ');
+      final shareMessage = '${_buildShareText()}\n📤 Sharing to: $contactNames';
+
+      if (context.mounted) {
+        // Open share dialog with the list of recipients
+        await Share.share(
+          shareMessage,
+          subject: widget.content.title ?? 'Check this out',
+        );
+
+        // Also add today's collection like regular reshare
+        final collectionsNotifier = context.read<CollectionsNotifier>();
+        await collectionsNotifier.addContentToday(
+          widget.content.contentType,
+          title: widget.content.title,
+          description: widget.content.description,
+          contentData: widget.content.contentData,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Shared with ${group.contacts.length} contact${group.contacts.length != 1 ? 's' : ''} in "${group.name}"',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing to group: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
 }
 
 /// Widget to display content type icon
@@ -955,7 +1087,7 @@ class _ContentTypeIcon extends StatelessWidget {
     switch (type) {
       case ContentType.screenshot:
         icon = Icons.screenshot;
-        color = Colors.blue;
+        color = Theme.of(context).colorScheme.primary.withValues(alpha: 0.8);
         break;
       case ContentType.link:
         icon = Icons.link;
@@ -963,15 +1095,15 @@ class _ContentTypeIcon extends StatelessWidget {
         break;
       case ContentType.text:
         icon = Icons.description;
-        color = Colors.green;
+        color = Theme.of(context).colorScheme.primary.withValues(alpha: 0.6);
         break;
       case ContentType.media:
         icon = Icons.image;
-        color = Colors.orange;
+        color = Theme.of(context).colorScheme.primary.withValues(alpha: 0.7);
         break;
       case ContentType.other:
         icon = Icons.folder;
-        color = Colors.grey;
+        color = Theme.of(context).colorScheme.primary.withValues(alpha: 0.5);
         break;
     }
 

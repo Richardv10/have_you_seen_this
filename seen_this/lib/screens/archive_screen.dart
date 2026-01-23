@@ -1,12 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../providers/collections_notifier.dart';
 import '../widgets/content_card.dart';
 
 /// Screen displaying archived content grouped by date
-class ArchiveScreen extends StatelessWidget {
+class ArchiveScreen extends StatefulWidget {
   const ArchiveScreen({super.key});
+
+  @override
+  State<ArchiveScreen> createState() => _ArchiveScreenState();
+}
+
+class _ArchiveScreenState extends State<ArchiveScreen> {
+  SortBy _currentSort = SortBy.newestFirst;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSortPreference();
+  }
+
+  Future<void> _loadSortPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sortIndex = prefs.getInt('archive_sort_preference') ?? 0;
+    setState(() {
+      _currentSort = SortBy.values[sortIndex];
+    });
+  }
+
+  Future<void> _saveSortPreference(SortBy sortBy) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('archive_sort_preference', sortBy.index);
+  }
+
+  List<DailyCollection> _applySorting(List<DailyCollection> collections) {
+    final sorted = List<DailyCollection>.from(collections);
+
+    switch (_currentSort) {
+      case SortBy.newestFirst:
+        sorted.sort((a, b) => b.date.compareTo(a.date));
+        break;
+      case SortBy.oldestFirst:
+        sorted.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case SortBy.titleAZ:
+        sorted.sort((a, b) {
+          final titleA = a.items.isNotEmpty ? a.items.first.title : '';
+          final titleB = b.items.isNotEmpty ? b.items.first.title : '';
+          return (titleA ?? '').toLowerCase().compareTo((titleB ?? '').toLowerCase());
+        });
+        break;
+      case SortBy.titleZA:
+        sorted.sort((a, b) {
+          final titleA = a.items.isNotEmpty ? a.items.first.title : '';
+          final titleB = b.items.isNotEmpty ? b.items.first.title : '';
+          return (titleB ?? '').toLowerCase().compareTo((titleA ?? '').toLowerCase());
+        });
+        break;
+    }
+
+    return sorted;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,14 +71,46 @@ class ArchiveScreen extends StatelessWidget {
         final collections = collectionsNotifier.collections;
 
         // Filter out today if present
-        final archiveCollections =
+        var archiveCollections =
             collections.where((c) => !c.isToday).toList();
+
+        // Apply sorting
+        archiveCollections = _applySorting(archiveCollections);
 
         return Scaffold(
           appBar: AppBar(
             title: const Text('Archive'),
             elevation: 0,
             centerTitle: true,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: PopupMenuButton<SortBy>(
+                  onSelected: (sortBy) {
+                    setState(() {
+                      _currentSort = sortBy;
+                    });
+                    _saveSortPreference(sortBy);
+                  },
+                  itemBuilder: (BuildContext context) => SortBy.values
+                      .map((sort) => PopupMenuItem<SortBy>(
+                            value: sort,
+                            child: Row(
+                              children: [
+                                if (_currentSort == sort)
+                                  const Icon(Icons.check, size: 20)
+                                else
+                                  const SizedBox(width: 20),
+                                const SizedBox(width: 12),
+                                Text(sort.label),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                  child: const Icon(Icons.sort),
+                ),
+              ),
+            ],
           ),
           body: archiveCollections.isEmpty
               ? Center(
