@@ -7,7 +7,7 @@ import '../models/models.dart';
 /// Service for managing SQLite database operations
 class DatabaseService {
   static const String _dbName = 'seen_this.db';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
 
   late Database _db;
 
@@ -51,6 +51,7 @@ class DatabaseService {
         source TEXT,
         content_data TEXT,
         mime_type TEXT,
+        tags TEXT,
         created_at TEXT NOT NULL,
         FOREIGN KEY (collection_date) REFERENCES collections(date) ON DELETE CASCADE
       )
@@ -74,7 +75,10 @@ class DatabaseService {
     int oldVersion,
     int newVersion,
   ) async {
-    // Handle migrations here in future versions
+    if (oldVersion < 2) {
+      // Add tags column to content_items table
+      await db.execute('ALTER TABLE content_items ADD COLUMN tags TEXT');
+    }
   }
 
   /// Migrate existing data from SharedPreferences to SQLite
@@ -144,9 +148,16 @@ class DatabaseService {
       final items = itemRows
           .map((row) {
             final json = Map<String, dynamic>.from(row);
-            // Fix the content_type field for fromJson compatibility
+            // Fix all snake_case database fields to camelCase for model compatibility
             json['contentType'] = json['content_type'];
             json.remove('content_type');
+            json['contentData'] = json['content_data'];
+            json.remove('content_data');
+            json['mimeType'] = json['mime_type'];
+            json.remove('mime_type');
+            // Handle tags: convert from comma-separated string to list
+            final tagsStr = json['tags'] as String?;
+            json['tags'] = tagsStr?.isNotEmpty == true ? tagsStr!.split(',') : [];
             return SharedContent.fromJson(json);
           })
           .toList();
@@ -164,47 +175,72 @@ class DatabaseService {
 
   /// Get all collections sorted by date (newest first)
   /// Supports pagination
+  /// OPTIMIZED: Uses single JOIN query instead of N+1 pattern
   Future<List<DailyCollection>> getAllCollections({
     int offset = 0,
     int limit = 100,
   }) async {
     try {
-      final collectionRows = await _db.query(
-        'collections',
-        orderBy: 'date DESC',
-        offset: offset,
-        limit: limit,
-      );
+      // Single optimized query with JOIN to fetch all data at once
+      final result = await _db.rawQuery('''
+        SELECT 
+          c.date,
+          c.created_at,
+          c.updated_at,
+          ci.id,
+          ci.content_type,
+          ci.title,
+          ci.description,
+          ci.timestamp,
+          ci.source,
+          ci.content_data,
+          ci.mime_type,
+          ci.tags,
+          ci.created_at as item_created_at
+        FROM collections c
+        LEFT JOIN content_items ci ON c.date = ci.collection_date
+        ORDER BY c.date DESC, ci.timestamp DESC
+        LIMIT ? OFFSET ?
+      ''', [limit, offset]);
 
-      final collections = <DailyCollection>[];
-
-      for (final row in collectionRows) {
+      // Group results by collection date in Dart
+      final Map<String, DailyCollection> collectionMap = {};
+      
+      for (final row in result) {
         final dateString = row['date'] as String;
-        final itemRows = await _db.query(
-          'content_items',
-          where: 'collection_date = ?',
-          whereArgs: [dateString],
-          orderBy: 'timestamp DESC',
-        );
-
-        final items = itemRows
-            .map((itemRow) {
-              final json = Map<String, dynamic>.from(itemRow);
-              // Fix the content_type field for fromJson compatibility
-              json['contentType'] = json['content_type'];
-              json.remove('content_type');
-              return SharedContent.fromJson(json);
-            })
-            .toList();
-
-        final date = DateTime.parse(dateString);
-        collections.add(DailyCollection(
-          date: date,
-          items: items,
-        ));
+        
+        // Create collection entry if it doesn't exist
+        if (!collectionMap.containsKey(dateString)) {
+          collectionMap[dateString] = DailyCollection(
+            date: DateTime.parse(dateString),
+            items: [],
+          );
+        }
+        
+        // Add item to collection if it exists (not all rows will have items)
+        if (row['id'] != null) {
+          try {
+            final json = Map<String, dynamic>.from(row);
+            // Fix all snake_case database fields to camelCase for model compatibility
+            json['contentType'] = json['content_type'];
+            json.remove('content_type');
+            json['contentData'] = json['content_data'];
+            json.remove('content_data');
+            json['mimeType'] = json['mime_type'];
+            json.remove('mime_type');
+            // Handle tags: convert from comma-separated string to list
+            final tagsStr = json['tags'] as String?;
+            json['tags'] = tagsStr?.isNotEmpty == true ? tagsStr!.split(',') : [];
+            collectionMap[dateString]!.items.add(SharedContent.fromJson(json));
+          } catch (e) {
+            // Ignore individual item parsing errors
+            // ignore: avoid_print
+            print('Error parsing item: $e');
+          }
+        }
       }
 
-      return collections;
+      return collectionMap.values.toList();
     } catch (e) {
       // ignore: avoid_print
       print('Error getting all collections: $e');
@@ -262,6 +298,7 @@ class DatabaseService {
             'source': item.source,
             'content_data': item.contentData,
             'mime_type': item.mimeType,
+            'tags': item.tags.isNotEmpty ? item.tags.join(',') : null,
             'created_at': now,
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
@@ -317,6 +354,28 @@ class DatabaseService {
       // ignore: avoid_print
       print('Error deleting old collections: $e');
       return 0;
+    }
+  }
+
+  /// Update tags for a specific content item
+  Future<void> updateContentTags(
+    DateTime date,
+    String contentId,
+    List<String> tags,
+  ) async {
+    try {
+      final dateString = date.toIso8601String().split('T')[0];
+      final tagsString = tags.isNotEmpty ? tags.join(',') : null;
+      
+      await _db.update(
+        'content_items',
+        {'tags': tagsString},
+        where: 'id = ? AND collection_date = ?',
+        whereArgs: [contentId, dateString],
+      );
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error updating tags: $e');
     }
   }
 

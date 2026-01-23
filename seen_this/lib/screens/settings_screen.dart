@@ -41,6 +41,76 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Theme Color',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Consumer<ThemeNotifier>(
+            builder: (context, themeNotifier, _) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: ColorTheme.values
+                      .map(
+                        (theme) => GestureDetector(
+                          onTap: () => themeNotifier.setColorTheme(theme),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  color: theme.colorValue,
+                                  shape: BoxShape.circle,
+                                  border: themeNotifier.colorTheme == theme
+                                      ? Border.all(
+                                          color: theme.colorValue,
+                                          width: 3,
+                                        )
+                                      : null,
+                                  boxShadow: themeNotifier.colorTheme == theme
+                                      ? [
+                                          BoxShadow(
+                                            color: theme.colorValue.withValues(alpha: 0.5),
+                                            blurRadius: 12,
+                                            spreadRadius: 2,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: themeNotifier.colorTheme == theme
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 24,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                theme.label,
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              );
+            },
+          ),
           const Divider(),
           const SizedBox(height: 8),
           Padding(

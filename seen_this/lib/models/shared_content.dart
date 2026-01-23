@@ -18,6 +18,7 @@ class SharedContent {
   final String? source; // e.g., "Instagram", "Twitter", "Clipboard"
   final String? contentData; // URL, text content, file path, etc.
   final String? mimeType;
+  final List<String> tags; // User-added labels for organization
 
   SharedContent({
     required this.id,
@@ -28,6 +29,7 @@ class SharedContent {
     this.source,
     this.contentData,
     this.mimeType,
+    this.tags = const [],
   });
 
   /// Format timestamp for display
@@ -46,6 +48,7 @@ class SharedContent {
       'source': source,
       'contentData': contentData,
       'mimeType': mimeType,
+      'tags': tags,
     };
   }
 
@@ -64,6 +67,7 @@ class SharedContent {
       source: json['source'] as String?,
       contentData: json['contentData'] as String?,
       mimeType: json['mimeType'] as String?,
+      tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 
@@ -77,6 +81,7 @@ class SharedContent {
     String? source,
     String? contentData,
     String? mimeType,
+    List<String>? tags,
   }) {
     return SharedContent(
       id: id ?? this.id,
@@ -87,6 +92,7 @@ class SharedContent {
       source: source ?? this.source,
       contentData: contentData ?? this.contentData,
       mimeType: mimeType ?? this.mimeType,
+      tags: tags ?? this.tags,
     );
   }
 }

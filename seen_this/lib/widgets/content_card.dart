@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../models/models.dart';
 import '../providers/collections_notifier.dart';
 import '../services/reshare_service.dart';
 import '../services/link_preview_service.dart';
+import '../services/tag_suggestion_service.dart';
 import '../screens/media_viewer_screen.dart';
 
 /// Widget displaying a single piece of shared content
@@ -43,13 +45,28 @@ class _ContentCardState extends State<ContentCard> {
 
   Future<void> _fetchMetadata() async {
     final url = widget.content.contentData ?? widget.content.description;
+    // ignore: avoid_print
+    print('📡 Fetching metadata for: $url');
+    
     if (url != null && url.isNotEmpty) {
-      final metadata = await LinkPreviewService.getMetadata(url);
-      if (mounted) {
-        setState(() {
-          _linkMetadata = metadata;
-          _metadataLoaded = true;
-        });
+      try {
+        final metadata = await LinkPreviewService.getMetadata(url);
+        if (mounted) {
+          // ignore: avoid_print
+          print('✅ Metadata result: title=${metadata?.title}, image=${metadata?.imageUrl}');
+          setState(() {
+            _linkMetadata = metadata;
+            _metadataLoaded = true;
+          });
+        }
+      } catch (e) {
+        // ignore: avoid_print
+        print('❌ Error fetching metadata: $e');
+        if (mounted) {
+          setState(() {
+            _metadataLoaded = true;
+          });
+        }
       }
     }
   }
@@ -231,6 +248,26 @@ class _ContentCardState extends State<ContentCard> {
                       ),
                 ),
               ),
+              if (widget.content.tags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Wrap(
+                    spacing: 4,
+                    children: widget.content.tags
+                        .map(
+                          (tag) => Chip(
+                            label: Text(tag),
+                            labelStyle: const TextStyle(fontSize: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withValues(alpha: 0.2),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
             ],
           ),
         ),
@@ -602,6 +639,27 @@ class _ContentCardState extends State<ContentCard> {
                   _shareContent();
                 },
               ),
+              // Preview in browser for links
+              if (widget.content.contentType == ContentType.link)
+                ListTile(
+                  leading: const Icon(Icons.open_in_browser, color: Colors.teal),
+                  title: const Text('Preview in Browser'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _openInBrowser(widget.content.contentData ?? widget.content.description ?? '');
+                  },
+                ),
+              ListTile(
+                leading: Icon(Icons.label, color: Theme.of(context).colorScheme.primary),
+                title: const Text('Edit Tags'),
+                subtitle: widget.content.tags.isNotEmpty
+                    ? Text(widget.content.tags.join(', '), maxLines: 1, overflow: TextOverflow.ellipsis)
+                    : null,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showTagsDialog(context);
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.copy),
                 title: const Text('Copy'),
@@ -698,6 +756,189 @@ class _ContentCardState extends State<ContentCard> {
     
     return buffer.toString();
   }
+
+  /// Open link in browser
+  Future<void> _openInBrowser(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // ignore: avoid_print
+        print('Cannot launch URL: $url');
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error launching URL: $e');
+    }
+  }
+
+  /// Show dialog for editing tags
+  void _showTagsDialog(BuildContext context) {
+    final tagsController = TextEditingController(
+      text: widget.content.tags.join(', '),
+    );
+    final selectedTags = <String>{...widget.content.tags};
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Edit Tags'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Text input for custom tags
+                    TextField(
+                      controller: tagsController,
+                      decoration: InputDecoration(
+                        hintText: 'Add custom tags separated by commas',
+                        border: OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                      maxLines: 2,
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 16),
+                    // Suggested tags
+                    Text(
+                      'Suggested Tags',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<String>>(
+                      future: _getSuggestedTags(context),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const SizedBox(
+                            height: 40,
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        final suggestedTags = snapshot.data ?? [];
+                        if (suggestedTags.isEmpty) {
+                          return Text(
+                            'No suggested tags yet. Create some to see them here!',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: Colors.grey[500],
+                                ),
+                          );
+                        }
+
+                        return Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: suggestedTags
+                              .map(
+                                (tag) => FilterChip(
+                                  label: Text(tag),
+                                  selected: selectedTags.contains(tag),
+                                  onSelected: (isSelected) {
+                                    setState(() {
+                                      if (isSelected) {
+                                        selectedTags.add(tag);
+                                      } else {
+                                        selectedTags.remove(tag);
+                                      }
+                                    });
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    final tagsText = tagsController.text.trim();
+                    final customTags = tagsText.isEmpty
+                        ? <String>[]
+                        : tagsText
+                            .split(',')
+                            .map((t) => t.trim())
+                            .where((t) => t.isNotEmpty)
+                            .toList();
+
+                    // Combine selected suggested tags + custom tags
+                    final allTags = [
+                      ...selectedTags,
+                      ...customTags,
+                    ].toList()..sort();
+
+                    // Remove duplicates
+                    allTags.removeWhere((tag) =>
+                        allTags.indexOf(tag) != allTags.lastIndexOf(tag));
+
+                    // Update the content item in the notifier
+                    final collectionsNotifier =
+                        context.read<CollectionsNotifier>();
+                    await collectionsNotifier.updateContentTags(
+                      widget.content.id,
+                      allTags,
+                    );
+
+                    // Save to tag suggestions
+                    final tagSuggestionService =
+                        _getTagSuggestionService(context);
+                    await tagSuggestionService.saveTags(allTags);
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Tags updated: ${allTags.join(", ")}'),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Get suggested tags from the service
+  Future<List<String>> _getSuggestedTags(BuildContext context) async {
+    final tagService = _getTagSuggestionService(context);
+    return await tagService.getFrequentTags(limit: 15);
+  }
+  /// Get tag suggestion service
+  TagSuggestionService _getTagSuggestionService(BuildContext context) {
+    return context.read<TagSuggestionService>();
+  }
 }
 
 /// Widget to display content type icon
@@ -718,7 +959,7 @@ class _ContentTypeIcon extends StatelessWidget {
         break;
       case ContentType.link:
         icon = Icons.link;
-        color = Colors.purple;
+        color = Theme.of(context).colorScheme.primary;
         break;
       case ContentType.text:
         icon = Icons.description;

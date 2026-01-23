@@ -15,6 +15,8 @@ class TodayScreen extends StatefulWidget {
 class _TodayScreenState extends State<TodayScreen> {
   late String _randomPhrase;
   
+  static final Random _random = Random();
+  
   static const List<String> _phrases = [
     'Feed me memes!',
     'I\'m content just sat here, get it?',
@@ -31,7 +33,7 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   void initState() {
     super.initState();
-    _randomPhrase = _phrases[Random().nextInt(_phrases.length)];
+    _randomPhrase = _phrases[_random.nextInt(_phrases.length)];
   }
 
   @override

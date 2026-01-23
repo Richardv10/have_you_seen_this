@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/database_service.dart';
 import 'services/share_intent_service.dart';
+import 'services/tag_suggestion_service.dart';
 import 'providers/collections_notifier.dart';
 import 'providers/theme_notifier.dart';
 import 'screens/today_screen.dart';
@@ -13,19 +14,32 @@ import 'screens/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Configure image cache to prevent memory leaks
+  imageCache.maximumSize = 50;        // Max 50 images in cache
+  imageCache.maximumSizeBytes = 100 * 1024 * 1024;  // Max 100 MB
+  
   // Initialize database service
   final databaseService = DatabaseService();
   await databaseService.init();
   
-  runApp(MyApp(databaseService: databaseService));
+  // Initialize tag suggestion service
+  final tagSuggestionService = TagSuggestionService(databaseService);
+  await tagSuggestionService.init();
+  
+  runApp(MyApp(
+    databaseService: databaseService,
+    tagSuggestionService: tagSuggestionService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final DatabaseService databaseService;
+  final TagSuggestionService tagSuggestionService;
 
   const MyApp({
     super.key,
     required this.databaseService,
+    required this.tagSuggestionService,
   });
 
   @override
@@ -37,6 +51,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => ThemeNotifier(),
+        ),
+        Provider(
+          create: (_) => tagSuggestionService,
         ),
       ],
       child: Consumer<ThemeNotifier>(
@@ -89,7 +106,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // Listen for shared content from other apps
     final collectionsNotifier =
         context.read<CollectionsNotifier>();
-    ShareIntentService.listenForSharedContent(context, collectionsNotifier);
+    ShareIntentService.listenForSharedContent(
+      context,
+      collectionsNotifier,
+      onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error adding shared content: $error'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      },
+    );
   }
 
   Future<void> _checkWelcomeStatus() async {

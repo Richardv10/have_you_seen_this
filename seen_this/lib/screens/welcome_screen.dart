@@ -38,8 +38,8 @@ class WelcomeScreen extends StatelessWidget {
               // How it works
               _InfoTile(
                 icon: Icons.share,
-                title: 'Share to the app',
-                description: 'Select the app from your phones share menu',
+                title: 'Share to, and from the app',
+                description: 'Select the app from your phones share menu, long press in the app to share',
               ),
               const SizedBox(height: 16),
               _InfoTile(
@@ -56,8 +56,8 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _InfoTile(
                 icon: Icons.share_rounded,
-                title: 'Share Again',
-                description: 'Easily re-share and group share',
+                title: 'Create tags',
+                description: 'Label links with quick tags (long press)',
               ),
               const Spacer(),
               // Get Started Button

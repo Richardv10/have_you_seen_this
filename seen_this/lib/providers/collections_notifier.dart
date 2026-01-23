@@ -152,5 +152,44 @@ class CollectionsNotifier extends ChangeNotifier {
   Future<Map<String, dynamic>> getStats() async {
     return await _databaseService.getStats();
   }
+
+  /// Update tags for a content item
+  Future<void> updateContentTags(String contentId, List<String> tags) async {
+    try {
+      // Find the content item and update it
+      for (final collection in _collections) {
+        final itemIndex = collection.items.indexWhere((item) => item.id == contentId);
+        if (itemIndex != -1) {
+          // Update in database
+          await _databaseService.updateContentTags(
+            collection.date,
+            contentId,
+            tags,
+          );
+          // Update in memory
+          collection.items[itemIndex] = collection.items[itemIndex].copyWith(tags: tags);
+          break;
+        }
+      }
+
+      // Also check today's collection
+      if (_todayCollection != null) {
+        final itemIndex = _todayCollection!.items.indexWhere((item) => item.id == contentId);
+        if (itemIndex != -1) {
+          await _databaseService.updateContentTags(
+            _todayCollection!.date,
+            contentId,
+            tags,
+          );
+          _todayCollection!.items[itemIndex] = _todayCollection!.items[itemIndex].copyWith(tags: tags);
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error updating tags: $e');
+    }
+  }
 }
 

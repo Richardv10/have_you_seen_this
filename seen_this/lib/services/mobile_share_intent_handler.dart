@@ -10,10 +10,15 @@ import 'link_preview_service.dart';
 class MobileShareIntentHandler {
   static const platform = MethodChannel('com.example.seen_this/share');
   static CollectionsNotifier? _collectionsNotifier;
+  static Function(String error)? _onError;
 
   /// Setup listener for shared text and links
-  static void setupTextListener(CollectionsNotifier collectionsNotifier) {
+  static void setupTextListener(
+    CollectionsNotifier collectionsNotifier, {
+    Function(String error)? onError,
+  }) {
     _collectionsNotifier = collectionsNotifier;
+    _onError = onError;
     // ignore: avoid_print
     print('✅ Text share listener: enabled');
     
@@ -62,7 +67,10 @@ class MobileShareIntentHandler {
   }
 
   /// Setup listener for shared media (images, videos, files)
-  static void setupMediaListener(CollectionsNotifier collectionsNotifier) {
+  static void setupMediaListener(
+    CollectionsNotifier collectionsNotifier, {
+    Function(String error)? onError,
+  }) {
     // ignore: avoid_print
     print('✅ Media share listener: enabled');
     // ignore: avoid_print
@@ -81,16 +89,35 @@ class MobileShareIntentHandler {
 
       // For links, try to fetch the page title from Open Graph metadata
       String? title;
+      String? description;
+      
       if (contentType == ContentType.link) {
         try {
+          // ignore: avoid_print
+          print('🌐 Fetching metadata for: $sharedText');
+          
           final metadata = await LinkPreviewService.getMetadata(sharedText);
-          if (metadata != null && metadata.title != null && metadata.title!.isNotEmpty) {
-            title = metadata.title;
+          
+          if (metadata != null) {
+            // Use metadata title if available
+            if (metadata.title != null && metadata.title!.isNotEmpty) {
+              title = metadata.title;
+              // ignore: avoid_print
+              print('✅ Got title from metadata: $title');
+            }
+            
+            // Use metadata description if available
+            if (metadata.description != null && metadata.description!.isNotEmpty) {
+              description = metadata.description;
+              // ignore: avoid_print
+              print('✅ Got description from metadata');
+            }
+          }
+          
+          // Fallback if no title from metadata
+          if (title == null || title.isEmpty) {
             // ignore: avoid_print
-            print('✅ Extracted title from metadata: $title');
-          } else {
-            // ignore: avoid_print
-            print('⚠️ No title found in metadata, using domain as title');
+            print('⚠️ No title in metadata, extracting domain');
             title = Uri.parse(sharedText).host.replaceFirst('www.', '');
             if (title.isEmpty) {
               title = 'Shared Link';
@@ -99,7 +126,7 @@ class MobileShareIntentHandler {
         } catch (e) {
           // Silent failure, use domain or default title
           // ignore: avoid_print
-          print('⚠️ Error fetching metadata: $e');
+          print('❌ Error fetching metadata: $e');
           try {
             title = Uri.parse(sharedText).host.replaceFirst('www.', '');
             if (title.isEmpty) {
@@ -111,20 +138,28 @@ class MobileShareIntentHandler {
         }
       } else {
         title = 'Shared Text';
+        description = sharedText;
+      }
+
+      // For links, use the URL as description if we didn't get one from metadata
+      if (contentType == ContentType.link && (description == null || description.isEmpty)) {
+        description = sharedText;
       }
 
       await collectionsNotifier.addContentToday(
         contentType,
         title: title,
-        description: sharedText,
+        description: description ?? sharedText,
         contentData: contentType == ContentType.link ? sharedText : null,
       );
 
       // ignore: avoid_print
       print('✅ Added shared text content to today\'s collection');
     } catch (e) {
+      final errorMsg = 'Error handling shared text: $e';
       // ignore: avoid_print
-      print('❌ Error handling shared text: $e');
+      print('❌ $errorMsg');
+      _onError?.call(errorMsg);
     }
   }
 
@@ -159,8 +194,10 @@ class MobileShareIntentHandler {
       // ignore: avoid_print
       print('✅ Added shared media content to today\'s collection');
     } catch (e) {
+      final errorMsg = 'Error handling shared media: $e';
       // ignore: avoid_print
-      print('❌ Error handling shared media: $e');
+      print('❌ $errorMsg');
+      _onError?.call(errorMsg);
     }
   }
 

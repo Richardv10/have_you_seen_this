@@ -18,8 +18,6 @@ class LinkMetadata {
 
 /// Service for extracting Open Graph metadata from links
 class LinkPreviewService {
-  static const Duration _timeout = Duration(seconds: 10);
-
   /// Extract Open Graph metadata from a URL
   static Future<LinkMetadata?> getMetadata(String url) async {
     try {
@@ -28,44 +26,58 @@ class LinkPreviewService {
         return null;
       }
 
-      // Fetch the page
+      // Fetch the page with a reasonable timeout
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5',
         },
-      ).timeout(_timeout);
+      ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode != 200) {
+        // ignore: avoid_print
+        print('⚠️ HTTP ${response.statusCode} for $url');
         return null;
       }
 
       // Parse the HTML
-      final document = parse(response.body);
+      try {
+        final document = parse(response.body);
 
-      // Extract Open Graph meta tags
-      final title = _getMetaContent(document, 'og:title') ??
-          _getMetaContent(document, 'twitter:title') ??
-          _getTitle(document);
+        // Extract Open Graph meta tags
+        final title = _getMetaContent(document, 'og:title') ??
+            _getMetaContent(document, 'twitter:title') ??
+            _getTitle(document);
 
-      final description = _getMetaContent(document, 'og:description') ??
-          _getMetaContent(document, 'twitter:description') ??
-          _getDescription(document);
+        final description = _getMetaContent(document, 'og:description') ??
+            _getMetaContent(document, 'twitter:description') ??
+            _getDescription(document);
 
-      final imageUrl = _getMetaContent(document, 'og:image') ??
-          _getMetaContent(document, 'twitter:image');
+        final imageUrl = _getMetaContent(document, 'og:image') ??
+            _getMetaContent(document, 'twitter:image');
 
-      final siteName =
-          _getMetaContent(document, 'og:site_name') ?? _extractDomain(url);
+        final siteName = _getMetaContent(document, 'og:site_name') ?? _extractDomain(url);
 
-      return LinkMetadata(
-        title: title,
-        description: description,
-        imageUrl: imageUrl,
-        siteName: siteName,
-      );
+        // Log what we found
+        // ignore: avoid_print
+        print('📄 Parsed $url: title="$title", has_desc=${description != null}, has_image=${imageUrl != null}');
+
+        return LinkMetadata(
+          title: title,
+          description: description,
+          imageUrl: imageUrl,
+          siteName: siteName,
+        );
+      } catch (parseError) {
+        // ignore: avoid_print
+        print('❌ Parse error for $url: $parseError');
+        return null;
+      }
     } catch (e) {
+      // ignore: avoid_print
+      print('❌ Network error fetching $url: $e');
       return null;
     }
   }
