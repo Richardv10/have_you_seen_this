@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import '../lib/services/database_service.dart';
-import '../lib/models/models.dart';
+import 'package:seen_this/services/database_service.dart';
+import 'package:seen_this/models/models.dart';
 
 void main() {
   // Initialize SQLite FFI for testing

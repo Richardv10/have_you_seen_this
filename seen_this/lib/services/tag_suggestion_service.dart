@@ -1,5 +1,4 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/models.dart';
 import 'database_service.dart';
 
 /// Service for managing tag suggestions and history

@@ -1,6 +1,15 @@
 # seen_this 📱
 
-A Flutter app that captures and organizes content shared to it from other apps.
+A Flutter app that captures and organizes content shared to it from other apps. 
+
+I made this because I overshare content with my friends, or at the wrong times<br>
+so my solution was this daily "share bucket". I don't have a lot of mobile app dev experience<br>
+so I've been teaching myself dart and the flutter framework, and skeletoned the thing with claude.<br>
+Eventually this will be prod ready, but its currently quite bare bones, I've been working on other things, and recently come back to it<br>
+The main issue I have is displaying thumbnails consistently given the various urls apps and browsers
+can utilize. 
+
+I'm currently looking for testers for the beta if anyone is interested drop me a dm  
 
 ## Overview
 
