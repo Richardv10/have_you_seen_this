@@ -13,7 +13,11 @@ I'm currently looking for testers for the beta if anyone is interested drop me a
 
 ## Overview
 
-**seen_this** helps you collect, organize, and manage content shared to you from social media, messaging apps, and browsers. Share anything once and find it organized by date.
+**seen_this** helps you collect, organize, and manage content shared to you from social media, messaging apps, and browsers. 
+
+**Approach and scope**
+
+I don't have much experience with Dart, so I'm treating this as a learning process. I used Claude Haiku to setup the services, and edited them <br> manually once I understood what was going on. Flutter provides a lot of the tools out of the box, and I'm only running an SQLite DB locally. I've opted to leave the app running standalone with no servers or auth to configure. <br> By doing this I can avoid any data governance issues, or server costs. This will mean I can release the app cheaply (or for free).<br> After doing this I'm fairly confident I could skeleton a flutter app in the same way I've done with other frameworks like Node/Express and Django. So success or fail, I've learn a lot.    
 
 ## Features
 
@@ -26,15 +30,15 @@ I'm currently looking for testers for the beta if anyone is interested drop me a
 
 ## Screenshots
 
-| Screen 1 | Screen 2 | Screen 3 |
-|----------|----------|----------|
-| ![Screenshot 1](assets/screenshots/screenshot_1.png) | ![Screenshot 2](assets/screenshots/screenshot_2.png) | ![Screenshot 3](assets/screenshots/screenshot_3.png) |
-| *Today's Content* | *Archive View* | *Settings* |
+| Home | Bucket | Share |
+|------|--------|-------|
+| ![Home](screenshots/home.png) | ![Bucket](screenshots/bucket.png) | ![Share](screenshots/share.png) |
+| *Today's Content* | *Daily Bucket* | *Share Menu* |
 
-| Screen 4 | Screen 5 |
-|----------|----------|
-| ![Screenshot 4](assets/screenshots/screenshot_4.png) | ![Screenshot 5](assets/screenshots/screenshot_5.png) |
-| *Share Options* | *Link Preview* |
+| Reshare | Splash |
+|---------|--------|
+| ![Reshare](screenshots/reshare.png) | ![Splash](screenshots/splash.png) |
+| *Reshare Options* | *App Splash* |
 
 ## Installation
 
